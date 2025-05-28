@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Jogo de Adivinhação</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(120deg, #74ebd5, #acb6e5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      color: #2c3e50;
+    }
+
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 15px;
+      font-size: 28px;
+    }
+
+    input {
+      padding: 10px;
+      font-size: 18px;
+      width: 100%;
+      max-width: 200px;
+      border: 2px solid #3498db;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #chutarBtn { background-color: #3498db; color: white; }
+    #chutarBtn:hover { background-color: #2980b9; }
+
+    #reiniciarBtn { background-color: #e74c3c; color: white; display: none; }
+    #reiniciarBtn:hover { background-color: #c0392b; }
+
+    .ranking {
+      text-align: left;
+      margin-top: 20px;
+    }
+
+    .ranking h2 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    .ranking ul {
+      list-style: none;
+    }
+
+    .ranking li {
+      margin-bottom: 5px;
+    }
+
+    #mensagem, #tentativasRestantes {
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Jogo de Adivinhação</h1>
+
+    <input type="text" id="nomeJogador" placeholder="Digite seu nome" />
+    <input type="number" id="palpite" min="1" max="100" placeholder="Seu palpite" />
+
+    <div class="buttons">
+      <button id="chutarBtn" onclick="verificarPalpite()">Chutar</button>
+      <button id="reiniciarBtn" onclick="reiniciarJogo()">Reiniciar</button>
+    </div>
+
+    <p id="mensagem"></p>
+    <p id="tentativasRestantes"></p>
+
+    <div class="ranking">
+      <h2>🏆 Ranking</h2>
+      <ul id="rankingList"></ul>
+    </div>
+  </div>
+
+  <!-- Sons -->
+  <audio id="acerto" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+  <audio id="erro" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
+  <audio id="vitoria" src="https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum_hit.ogg"></audio>
+  <audio id="derrota" src="https://actions.google.com/sounds/v1/cartoon/boing.ogg"></audio>
+
+  <script>
+    let numeroSecreto;
+    const maxTentativas = 10;
+    let tentativas;
+
+    const inputNome = document.getElementById('nomeJogador');
+    const inputPalpite = document.getElementById('palpite');
+    const mensagem = document.getElementById('mensagem');
+    const tentativasRestantes = document.getElementById('tentativasRestantes');
+    const chutarBtn = document.getElementById('chutarBtn');
+    const reiniciarBtn = document.getElementById('reiniciarBtn');
+    const rankingList = document.getElementById('rankingList');
+
+    const somAcerto = document.getElementById('acerto');
+    const somErro = document.getElementById('erro');
+    const somVitoria = document.getElementById('vitoria');
+    const somDerrota = document.getElementById('derrota');
+
+    function iniciarJogo() {
+      numeroSecreto = Math.floor(Math.random() * 100) + 1;
+      tentativas = 0;
+      mensagem.textContent = '';
+      tentativasRestantes.textContent = '';
+      inputPalpite.disabled = false;
+      inputPalpite.value = '';
+      chutarBtn.disabled = false;
+      reiniciarBtn.style.display = 'none';
+      atualizarRanking();
+    }
+
+    function verificarPalpite() {
+      const nome = inputNome.value.trim();
+      if (!nome) {
+        alert('Digite seu nome para jogar!');
+        return;
+      }
+
+      const palpite = parseInt(inputPalpite.value);
+
+      if (isNaN(palpite) || palpite < 1 || palpite > 100) {
+        mensagem.textContent = "Por favor, insira um número entre 1 e 100.";
+        somErro.play();
+        return;
+      }
+
+      tentativas++;
+
+      if (palpite === numeroSecreto) {
+        mensagem.textContent = `🎉 Você acertou em ${tentativas} tentativa(s), ${nome}!`;
+        somVitoria.play();
+        salvarPontuacao(nome, tentativas);
+        fimDeJogo();
+      } else if (tentativas >= maxTentativas) {
+        mensagem.textContent = `❌ Você perdeu! O número secreto era ${numeroSecreto}.`;
+        somDerrota.play();
+        fimDeJogo();
+      } else if (palpite < numeroSecreto) {
+        mensagem.textContent = "🔼 O número secreto é maior.";
+        somErro.play();
+      } else {
+        mensagem.textContent = "🔽 O número secreto é menor.";
+        somErro.play();
+      }
+
+      tentativasRestantes.textContent = `Tentativas restantes: ${maxTentativas - tentativas}`;
+    }
+
+    function fimDeJogo() {
+      inputPalpite.disabled = true;
+      chutarBtn.disabled = true;
+      reiniciarBtn.style.display = 'inline-block';
+    }
+
+    function reiniciarJogo() {
+      iniciarJogo();
+    }
+
+    function salvarPontuacao(nome, pontuacao) {
+      let ranking = JSON.parse(localStorage.getItem('ranking')) || [];
+      ranking.push({ nome, pontuacao });
+      ranking.sort((a, b) => a.pontuacao - b.pontuacao); // Menor pontuação primeiro
+      ranking = ranking.slice(0, 5); // Top 5
+      localStorage.setItem('ranking', JSON.stringify(ranking));
+      atualizarRanking();
+    }
+
+    function atualizarRanking() {
+      const ranking = JSON.parse(localStorage.getItem('ranking')) || [];
+      rankingList.innerHTML = '';
+      ranking.forEach((jogador, index) => {
+        const item = document.createElement('li');
+        item.textContent = `${index + 1}. ${jogador.nome} - ${jogador.pontuacao} tentativa(s)`;
+        rankingList.appendChild(item);
+      });
+    }
+
+    iniciarJogo();
+  </script>
+<footer><p>&copy; 2025 Jogo da Adivinhação - Todos os Direitos Reservados</p></footer>
+</body>
+</html>
